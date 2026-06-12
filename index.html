@@ -255,6 +255,7 @@
       background: var(--c-green-light);
     }
     .mix-featured .scenario-name { color: var(--c-green); }
+    .car-wide { grid-column: 1 / -1; }
     .mix-saving {
       font-size: 13px;
       font-weight: 500;
@@ -389,7 +390,7 @@
 
       /* Scenario grid: single column on small screens */
       .scenarios-grid { grid-template-columns: 1fr; }
-      .mix-featured { grid-column: 1; }
+      .mix-featured, .car-wide { grid-column: 1; }
 
       /* Scenario card: slightly smaller total */
       .scenario-total { font-size: 30px; }
@@ -1549,18 +1550,20 @@
     const minTotal = Math.min(...totals);
 
     const mixScenario = scenarios.find(s => s.id === 'mix');
-    const otherScenarios = scenarios.filter(s => s.id !== 'mix');
+    const carScenario = scenarios.find(s => s.id === 'car');
+    const gridScenarios = scenarios.filter(s => s.id !== 'mix' && s.id !== 'car');
 
-    function renderCard(s, featured) {
+    function renderCard(s, wideClass) {
       const isCheapest = Math.round(s.total) === Math.round(minTotal);
       const score = FREEDOM_SCORES[s.id] || 5;
-      const saving = featured && mixScenario ? Math.round(scenarios.find(sc => sc.id === 'car').total - mixScenario.total) : 0;
+      const isMix = s.id === 'mix';
+      const saving = isMix && carScenario ? Math.round(carScenario.total - s.total) : 0;
       return `
-        <div class="scenario-card${isCheapest ? ' cheapest' : ''}${featured ? ' mix-featured' : ''}">
+        <div class="scenario-card${isCheapest ? ' cheapest' : ''}${isMix ? ' mix-featured' : ''}${wideClass ? ' ' + wideClass : ''}">
           ${isCheapest ? '<div class="cheapest-badge">Cheapest</div>' : ''}
           <div class="scenario-name">${s.emoji} ${s.name}</div>
           <div class="scenario-total">€${fmt(Math.round(s.total))}<span class="scenario-unit">/mo</span></div>
-          ${featured && saving > 0 ? `<div class="mix-saving">Save ~€${fmt(saving)}/mo vs owning a car</div>` : ''}
+          ${isMix && saving > 0 ? `<div class="mix-saving">Save ~€${fmt(saving)}/mo vs owning a car</div>` : ''}
           <div class="freedom-row">
             <span class="freedom-label">Freedom</span>
             <div class="freedom-bar-wrap"><div class="freedom-bar-fill" style="width:${score * 10}%"></div></div>
@@ -1578,8 +1581,9 @@
     }
 
     grid.innerHTML =
-      (mixScenario ? renderCard(mixScenario, true) : '') +
-      otherScenarios.map(s => renderCard(s, false)).join('');
+      (mixScenario ? renderCard(mixScenario, 'mix-featured') : '') +
+      (carScenario  ? renderCard(carScenario,  'car-wide')    : '') +
+      gridScenarios.map(s => renderCard(s, '')).join('');
 
     document.getElementById('data-note').style.display = 'block';
 
@@ -1772,11 +1776,10 @@
     const mixResult = { pt: ptCost, carsharing: csResult.total, taxi: taxiCost };
 
     const scenarios = [
-      { id: 'mix',        emoji: '🎯', name: 'Car-free mix',      total: mixTotal,          co2: calcCO2Mix(inp, DATA),         breakdown: renderMixBreakdown(mixResult, inp) },
-      { id: 'car',        emoji: '🚗', name: 'Your car',          total: carResult.total,   co2: calcCO2Car(inp, DATA),  r: carResult, breakdown: renderCarBreakdown(carResult, inp) },
-      { id: 'pt',         emoji: '🚌', name: 'Public transport',  total: ptCost,            co2: calcCO2PT(inp, DATA),          breakdown: renderPTBreakdown(ptCost, inp) },
-      { id: 'carsharing', emoji: '🔑', name: 'Carsharing only',   total: csResult.total,    co2: calcCO2Carsharing(inp, DATA),  breakdown: renderCSBreakdown(csResult, inp) },
-      { id: 'mybee',      emoji: '🐝', name: 'MyBee',             total: mybeeResult.total, co2: calcCO2MyBee(inp, DATA),       breakdown: renderMyBeeBreakdown(mybeeResult, inp) },
+      { id: 'mix',        emoji: '🎯', name: 'Car-free mix',      total: mixTotal,          co2: calcCO2Mix(inp, DATA),        breakdown: renderMixBreakdown(mixResult, inp) },
+      { id: 'car',        emoji: '🚗', name: 'Your car',          total: carResult.total,   co2: calcCO2Car(inp, DATA), r: carResult, breakdown: renderCarBreakdown(carResult, inp) },
+      { id: 'carsharing', emoji: '🔑', name: 'Carsharing only',   total: csResult.total,    co2: calcCO2Carsharing(inp, DATA), breakdown: renderCSBreakdown(csResult, inp) },
+      { id: 'mybee',      emoji: '🐝', name: 'MyBee',             total: mybeeResult.total, co2: calcCO2MyBee(inp, DATA),      breakdown: renderMyBeeBreakdown(mybeeResult, inp) },
     ];
 
     renderComparison(scenarios, inp);
