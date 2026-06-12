@@ -598,17 +598,9 @@
     <div id="preset-summary" class="preset-summary" style="display:none"></div>
   </section>
 
-  <!-- ── Section A: Your situation ── -->
+  <!-- ── Section A: Your driving ── -->
   <section class="card">
-    <div class="card-title">Your situation</div>
-
-    <div class="field">
-      <label class="field-label">I am…</label>
-      <div class="toggle-group" id="profile-toggle">
-        <button class="active" data-val="planning" onclick="setToggle('profile', 'planning', this)">Planning to buy</button>
-        <button data-val="own" onclick="setToggle('profile', 'own', this)">Already own a car</button>
-      </div>
-    </div>
+    <div class="card-title">Your driving</div>
 
     <div class="field">
       <label class="field-label">Monthly driving distance</label>
@@ -1044,7 +1036,6 @@
   // STATE — toggle values tracked here
   // ============================================================
   const state = {
-    profile: 'planning',
     'car-status': 'new',
     'fuel-type': 'petrol',
     'insurance-type': 'kasko',
@@ -1435,7 +1426,6 @@
       : null;
 
     return {
-      profile: state.profile,
       kmPerMonth: num('km-per-month', 1200),
       carStatus: state['car-status'],
       purchasePrice: num('purchase-price', 20000),
