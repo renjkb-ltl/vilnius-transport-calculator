@@ -928,6 +928,7 @@
         <button class="active" data-val="monthly" onclick="setToggle('pt-ticket', 'monthly', this); onPTTypeChange()">Monthly €38</button>
         <button data-val="annual" onclick="setToggle('pt-ticket', 'annual', this); onPTTypeChange()">Annual €28.50/mo</button>
         <button data-val="single" onclick="setToggle('pt-ticket', 'single', this); onPTTypeChange()">Single tickets</button>
+        <button data-val="none" onclick="setToggle('pt-ticket', 'none', this); onPTTypeChange()">No pass</button>
       </div>
     </div>
     <div class="cond" id="pt-single-fields">
@@ -1212,6 +1213,7 @@
 
   function calcPTMonthly(ticketType, tripsPerWeek, ticketSize, data) {
     const pt = data.public_transport;
+    if (ticketType === 'none') return 0;
     if (ticketType === 'annual') return pt.annual_pass / 12;
     if (ticketType === 'single') {
       const price = ticketSize === '30min' ? pt.single_30min : pt.single_60min;
@@ -1533,6 +1535,7 @@
   }
 
   function renderPTBreakdown(ptCost, inp) {
+    if (inp.ptTicketType === 'none') return breakdownRow('Public transport', 0, 'not included');
     if (inp.ptTicketType === 'monthly') return breakdownRow('Monthly JUDU pass', ptCost, 'all buses & trolleys');
     if (inp.ptTicketType === 'annual') return breakdownRow('Annual pass (amortised)', ptCost, '€342/yr ÷ 12');
     return breakdownRow('Single tickets', ptCost,
@@ -1564,7 +1567,7 @@
   }
 
   function renderMixBreakdown(mix, inp) {
-    const ptLabels = { monthly: 'Monthly pass', annual: 'Annual pass (÷12)', single: inp.ptTripsPerWeek + ' trips/wk' };
+    const ptLabels = { none: 'not included', monthly: 'Monthly pass', annual: 'Annual pass (÷12)', single: inp.ptTripsPerWeek + ' trips/wk' };
     const rows = [
       breakdownRow('Public transport', mix.pt, ptLabels[inp.ptTicketType] || 'monthly pass'),
       breakdownRow('Carsharing', mix.carsharing, inp.csTripsPerWeek + ' trips/wk · ' + (inp.csFullDaysPerMonth > 0 ? inp.csFullDaysPerMonth + ' full days/mo' : 'no full days')),
