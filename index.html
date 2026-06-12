@@ -464,6 +464,45 @@
       border-top: 1px solid var(--c-border);
     }
 
+    /* ── Info tooltip ── */
+    .info-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--c-border);
+      color: var(--c-muted);
+      font-size: 9px;
+      font-style: normal;
+      cursor: default;
+      position: relative;
+      vertical-align: middle;
+      margin-left: 3px;
+      flex-shrink: 0;
+    }
+    .info-btn::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 11px;
+      line-height: 1.5;
+      padding: 8px 10px;
+      border-radius: 6px;
+      width: 240px;
+      white-space: normal;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 100;
+    }
+    .info-btn:hover::after { opacity: 1; }
+
     /* ── CO₂ row ── */
     .co2-row {
       display: flex;
@@ -1231,7 +1270,7 @@
 
     const tripsPerMonth = (tripsPerWeek || 0) * 4.33;
     const rideCost = tripsPerMonth * ((avgMinutes || 30) * perMin + (avgKm || 8) * perKm);
-    const accidentRisk = deductible / (8 * 12);
+    const accidentRisk = deductible / (3 * 12);
     const fullDayCost = (fullDaysPerMonth || 0) * dailyCostPerDay;
     return { ride: rideCost, accidentRisk, fullDay: fullDayCost, dailyCostPerDay, dailyRateDisplay, total: rideCost + accidentRisk + fullDayCost };
   }
@@ -1504,7 +1543,7 @@
     const service = { blended: 'Blended avg', spark: 'Spark', bolt_drive: 'Bolt Drive', citybee: 'CityBee' }[inp.csService] || 'Blended';
     const rows = [
       breakdownRow('Ride cost', cs.ride, service + ' · ' + inp.csTripsPerWeek + ' trips/wk · ' + inp.csAvgMinutes + ' min · ' + inp.csAvgKm + ' km'),
-      breakdownRow('Accident risk (amortised)', cs.accidentRisk, 'deductible ÷ 8yr avg fault interval'),
+      breakdownRow('Accident risk (amortised)', cs.accidentRisk, 'deductible ÷ 36 months <span class="info-btn" data-tooltip="How we calculate this: we take the full deductible (e.g. Spark €450, Bolt Drive €750) and spread it over 36 months — our estimate of how often an active urban carsharing user will have an at-fault incident. That\'s €' + Math.round(cs.accidentRisk) + '/mo set aside mentally for the moment it happens.&#10;&#10;Why it matters: carsharing companies charge the full deductible instantly, even for a minor scratch found during vehicle inspection. On top of that they bill separately for damage assessment, towing, and cleaning — so the real exposure is higher. Verified deductibles: Spark €450 (§7.3.1) — €1 200 if under 1 yr experience, €3 000 for write-off. Bolt Drive €750. CityBee variable per car class (shown in app before booking).&#10;&#10;Compare to regular KASKO: you pay €100–300 excess and insurance covers the rest. The carsharing gap is real.">ℹ</span>'),
     ];
     if (cs.fullDay > 0) {
       rows.push(breakdownRow('Weekend / full-day rides', cs.fullDay,
