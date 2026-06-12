@@ -1,0 +1,122 @@
+{
+  "fuel": {
+    "euro95_eur_per_litre": 1.79,
+    "diesel_eur_per_litre": 1.877,
+    "electricity_eur_per_kwh": 0.20,
+    "updated": "2026-06-01",
+    "source": "EC Weekly Oil Bulletin",
+    "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en"
+  },
+  "parking": {
+    "green_zone_monthly": 55,
+    "yellow_zone_monthly": 110,
+    "blue_zone_monthly": 525,
+    "updated": "2026-01-01",
+    "source": "Vilnius City Municipality",
+    "source_url": "https://vilnius.lt/lt/miestas/transportas/automobiliu-statymas/"
+  },
+  "tyres": {
+    "budget_set_eur": 280,
+    "mid_set_eur": 480,
+    "premium_set_eur": 720,
+    "changeover_eur": 40,
+    "default_lifespan_years": 4,
+    "updated": "2026-01-01",
+    "source": "Market estimate"
+  },
+  "inspection": {
+    "cost_eur": 35,
+    "updated": "2026-01-01",
+    "source": "VKTI Lithuania",
+    "source_url": "https://www.vkti.gov.lt/"
+  },
+  "insurance": {
+    "tpl_annual_eur": 280,
+    "kasko_rate_pct": 3.5,
+    "note": "Estimates only — override with your actual quote",
+    "updated": "2026-01-01",
+    "source": "Market estimate"
+  },
+  "carsharing": {
+    "spark_deductible_eur": 450,
+    "spark_deductible_source": "Spark Vehicle Use Rules, §7.3.1 (verified Jun 2026)",
+    "bolt_drive_deductible_eur": 750,
+    "bolt_drive_deductible_source": "Bolt Drive T&Cs Lithuania (verified Jun 2026)",
+    "citybee_deductible_eur": null,
+    "citybee_deductible_note": "Variable per car — shown in CityBee app (BeeChill fee). Check app for current figure.",
+    "spark_per_min": 0.17,
+    "spark_per_km": 0.10,
+    "bolt_drive_per_min": 0.18,
+    "bolt_drive_per_km": 0.12,
+    "citybee_per_min": 0.15,
+    "citybee_per_km": 0.11,
+    "blended_per_min": 0.17,
+    "blended_per_km": 0.11,
+    "spark_daily_eur": 49,
+    "spark_daily_free_km": 100,
+    "spark_daily_per_km": 0.35,
+    "spark_daily_note": "1-day package incl. 100 free km, then €0.35/km. Confirmed spark.lt Jun 2026.",
+    "bolt_drive_daily_eur": 50,
+    "bolt_drive_daily_free_km": 100,
+    "bolt_drive_daily_per_km": 0.12,
+    "bolt_drive_daily_note": "Blended ~€50/day incl. 100 km (Kia Sportage €51, Mini Cooper €42). Verified Jun 2026.",
+    "citybee_daily_eur": 45.9,
+    "citybee_daily_free_km": 100,
+    "citybee_daily_per_km": 0.27,
+    "citybee_daily_note": "1D+100km package €45.9, flat across car classes. Verified Jun 2026. Extra km ~€0.27/km (derived from 30/100/150km tiers).",
+    "blended_daily_eur": 48,
+    "blended_daily_free_km": 100,
+    "blended_daily_per_km": 0.27,
+    "blended_daily_note": "Avg of Spark €49, Bolt Drive €50, CityBee €45.9 — all with 100 free km.",
+    "updated": "2026-06-11",
+    "source": "Service apps (Spark/Bolt/CityBee)"
+  },
+  "mybee": {
+    "economy_monthly": 389,
+    "midrange_monthly": 490,
+    "premium_monthly": 690,
+    "suv_monthly": 780,
+    "economy_petrol_l100km": 6.5,
+    "economy_diesel_l100km": 5.5,
+    "economy_kwh100km": 16,
+    "midrange_petrol_l100km": 7.5,
+    "midrange_diesel_l100km": 6.5,
+    "midrange_kwh100km": 18,
+    "premium_petrol_l100km": 9.0,
+    "premium_diesel_l100km": 7.5,
+    "premium_kwh100km": 22,
+    "suv_petrol_l100km": 9.5,
+    "suv_diesel_l100km": 8.0,
+    "suv_kwh100km": 24,
+    "updated": "2026-06-01",
+    "source": "MyBee catalogue",
+    "source_url": "https://mybee.lt/",
+    "note": "Check monthly — pricing changes. Use car class buckets, not specific models."
+  },
+  "public_transport": {
+    "single_30min": 1.00,
+    "single_60min": 1.25,
+    "monthly_pass": 38,
+    "annual_pass": 342,
+    "updated": "2026-01-01",
+    "source": "Vilnius Public Transport",
+    "source_url": "https://www.troleibusai.lt/"
+  },
+  "taxi": {
+    "bolt_avg_fare_eur": 8,
+    "note": "Bolt taxi avg Vilnius trip ~5-8 km. €1 booking + €0.55/km + €0.14/min. Override with your typical fare.",
+    "updated": "2026-06-11",
+    "source": "Bolt app estimate"
+  },
+  "co2": {
+    "petrol_kg_per_litre": 2.31,
+    "diesel_kg_per_litre": 2.68,
+    "grid_kg_per_kwh": 0.20,
+    "spark_electric_kg_per_km": 0.10,
+    "bolt_drive_mixed_kg_per_km": 0.18,
+    "citybee_mixed_kg_per_km": 0.18,
+    "pt_bus_kg_per_km": 0.04,
+    "updated": "2026-01-01",
+    "source": "Lithuanian grid mix ~200g CO2/kWh (2025)"
+  }
+}

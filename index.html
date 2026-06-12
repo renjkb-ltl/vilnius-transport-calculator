@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vilnius Transport Cost Calculator</title>
+  <style>
+    :root {
+      --c-bg: #f7f7f5;
+      --c-surface: #ffffff;
+      --c-border: #e4e4e0;
+      --c-text: #1c1c1a;
+      --c-muted: #6e6e6a;
+      --c-green: #0d7a50;
+      --c-green-light: #e6f5ee;
+      --c-green-mid: #c2e8d4;
+      --c-amber: #b56900;
+      --c-amber-light: #fef3e2;
+      --c-red-light: #fdecea;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--c-text);
+      background: var(--c-bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 680px; margin: 0 auto; padding: 16px; }
+
+    header {
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      padding: 20px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-inner { max-width: 680px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .header-title { font-size: 16px; font-weight: 600; color: var(--c-text); }
+    .header-subtitle { font-size: 12px; color: var(--c-muted); margin-top: 1px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--c-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label.field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--c-text);
+      margin-bottom: 6px;
+    }
+
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--c-text);
+      background: var(--c-surface);
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.15s;
+    }
+    input[type="number"]:focus, input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: var(--c-green);
+      box-shadow: 0 0 0 3px var(--c-green-light);
+    }
+    .input-row { display: flex; gap: 8px; align-items: center; }
+    .input-row input { flex: 1; }
+    .input-row .unit { font-size: 13px; color: var(--c-muted); white-space: nowrap; flex-shrink: 0; min-width: 56px; }
+
+    /* Source tag */
+    .source-tag {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--c-muted);
+      background: var(--c-bg);
+      border: 1px solid var(--c-border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-top: 4px;
+    }
+    .source-tag.custom { color: var(--c-amber); border-color: var(--c-amber-light); background: var(--c-amber-light); }
+
+    /* ── Toggle group ── */
+    .toggle-group { display: flex; gap: 0; }
+    .toggle-group button {
+      flex: 1;
+      height: 40px;
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      color: var(--c-muted);
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      padding: 0 12px;
+    }
+    .toggle-group button:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .toggle-group button:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .toggle-group button:not(:first-child) { border-left: none; }
+    .toggle-group button.active {
+      background: var(--c-green);
+      color: #fff;
+      border-color: var(--c-green);
+      z-index: 1;
+    }
+    .toggle-group button:hover:not(.active) { background: var(--c-bg); color: var(--c-text); }
+
+    /* ── Range slider ── */
+    .slider-row { display: flex; align-items: center; gap: 12px; }
+    .slider-row input[type="range"] { flex: 1; height: 4px; accent-color: var(--c-green); cursor: pointer; }
+    .slider-value { font-size: 15px; font-weight: 600; color: var(--c-text); min-width: 80px; text-align: right; }
+
+    /* ── Expandable sections ── */
+    details { border-top: 1px solid var(--c-border); margin-top: 16px; padding-top: 4px; }
+    details + details { margin-top: 0; }
+    summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--c-text);
+      list-style: none;
+      user-select: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "›"; font-size: 18px; color: var(--c-muted); transition: transform 0.15s; }
+    details[open] summary::after { transform: rotate(90deg); }
+    summary .summary-hint { font-size: 12px; color: var(--c-muted); font-weight: 400; }
+    .details-body { padding-bottom: 4px; }
+
+    /* ── Checkbox ── */
+    .checkbox-row { display: flex; align-items: center; gap: 10px; }
+    .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--c-green); cursor: pointer; flex-shrink: 0; }
+    .checkbox-row label { font-size: 14px; color: var(--c-text); cursor: pointer; }
+
+    /* ── Conditional fields ── */
+    .cond { display: none; margin-top: 12px; }
+    .cond.visible { display: block; }
+    .cond.visible-flex { display: flex; }
+
+    /* ── Results card ── */
+    .results-card { border-color: var(--c-green-mid); }
+
+    .total-display {
+      text-align: center;
+      padding: 20px 0 16px;
+      border-bottom: 1px solid var(--c-border);
+      margin-bottom: 16px;
+    }
+    .total-label { font-size: 13px; color: var(--c-muted); margin-bottom: 4px; }
+    .total-amount {
+      font-size: 52px;
+      font-weight: 700;
+      color: var(--c-green);
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .total-amount.empty { font-size: 32px; color: var(--c-muted); font-weight: 400; letter-spacing: 0; }
+    .total-unit { font-size: 16px; color: var(--c-muted); margin-top: 4px; }
+
+    /* Line items */
+    .breakdown { font-size: 14px; }
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .breakdown-item:last-child { border-bottom: none; }
+    .breakdown-item .item-label { color: var(--c-text); }
+    .breakdown-item .item-amount { font-weight: 600; color: var(--c-text); }
+    .breakdown-item .item-amount.zero { color: var(--c-muted); font-weight: 400; }
+    .breakdown-item.total-row { padding-top: 12px; }
+    .breakdown-item.total-row .item-label { font-weight: 600; font-size: 15px; }
+    .breakdown-item.total-row .item-amount { font-size: 18px; font-weight: 700; color: var(--c-green); }
+    .item-note { font-size: 11px; color: var(--c-muted); margin-top: 1px; }
+
+    /* Data warning */
+    .data-note {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: var(--c-amber-light);
+      border: 1px solid #f0d090;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--c-amber);
+    }
+
+    /* ── Phase badge ── */
+    .phase-badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      background: var(--c-green-light);
+      color: var(--c-green);
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    /* ── Alternatives section sub-headings ── */
+    .alt-heading {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--c-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 20px 0 12px;
+    }
+    .alt-heading:first-child { margin-top: 0; }
+
+    /* ── Mix featured card ── */
+    .mix-featured {
+      grid-column: 1 / -1;
+      border-color: var(--c-green);
+      background: var(--c-green-light);
+    }
+    .mix-featured .scenario-name { color: var(--c-green); }
+    .mix-saving {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--c-green);
+      margin: 2px 0 6px;
+    }
+
+    .alt-subheading {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--c-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 16px 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--c-border);
+    }
+
+    /* ── Scenario comparison grid ── */
+    .scenarios-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 4px;
+    }
+    @media (max-width: 520px) {
+      .scenarios-grid { grid-template-columns: 1fr; }
+    }
+
+    .scenario-card {
+      background: var(--c-bg);
+      border: 1.5px solid var(--c-border);
+      border-radius: var(--radius);
+      padding: 14px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .scenario-card.cheapest {
+      border-color: var(--c-green);
+      background: var(--c-green-light);
+    }
+    .cheapest-badge {
+      position: absolute;
+      top: -1px; right: 12px;
+      background: var(--c-green);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 0 0 6px 6px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .scenario-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--c-muted);
+    }
+    .scenario-total {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--c-text);
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+    .scenario-total .scenario-unit {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--c-muted);
+      margin-left: 2px;
+    }
+    .scenario-card.cheapest .scenario-total { color: var(--c-green); }
+
+    /* Freedom score bar */
+    .freedom-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .freedom-label { font-size: 11px; color: var(--c-muted); min-width: 44px; }
+    .freedom-bar-wrap {
+      flex: 1;
+      height: 5px;
+      background: var(--c-border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .freedom-bar-fill {
+      height: 100%;
+      background: var(--c-green);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .freedom-value { font-size: 11px; font-weight: 600; color: var(--c-text); min-width: 24px; text-align: right; }
+
+    /* Breakdown inside scenario card */
+    .scenario-card details { border-top: 1px solid var(--c-border); margin-top: 4px; padding-top: 0; }
+    .scenario-card details summary { font-size: 12px; color: var(--c-muted); padding: 8px 0 4px; }
+    .scenario-card details summary::after { font-size: 14px; }
+    .card-breakdown { font-size: 12px; }
+    .card-breakdown .breakdown-item { padding: 5px 0; font-size: 12px; }
+    .card-breakdown .breakdown-item .item-label { font-size: 12px; }
+    .card-breakdown .breakdown-item .item-amount { font-size: 12px; }
+    .card-breakdown .breakdown-item.total-row .item-amount { font-size: 13px; }
+
+    /* ── Footer ── */
+    footer {
+      max-width: 680px;
+      margin: 8px auto 32px;
+      padding: 0 16px;
+      font-size: 12px;
+      color: var(--c-muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+    footer a { color: var(--c-muted); text-decoration: underline; }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid var(--c-border); margin: 16px 0; }
+
+    /* ── Mobile tweaks ── */
+    @media (max-width: 520px) {
+      .header-inner { flex-wrap: wrap; }
+      .total-amount { font-size: 40px; }
+
+      /* Tighter container padding */
+      .container { padding: 0 10px 24px; }
+      .card { padding: 16px 14px; }
+
+      /* Scenario grid: single column on small screens */
+      .scenarios-grid { grid-template-columns: 1fr; }
+      .mix-featured { grid-column: 1; }
+
+      /* Scenario card: slightly smaller total */
+      .scenario-total { font-size: 30px; }
+
+      /* Toggle groups wrap on small screens */
+      .toggle-group { flex-wrap: wrap; }
+      .toggle-group button { flex: 1 1 auto; min-width: 80px; }
+
+      /* Slider rows don't overflow */
+      .slider-row { gap: 8px; }
+      .slider-value { min-width: 60px; font-size: 13px; }
+
+      /* Share button full-width */
+      .share-btn { width: 100%; text-align: center; }
+
+      /* Sell callout smaller text */
+      .sell-body { font-size: 12px; }
+    }
+
+    /* ── How it works ── */
+    .how-it-works {
+      max-width: 680px;
+      margin: 0 auto 10px;
+      padding: 0 16px;
+    }
+    .how-summary {
+      font-size: 13px;
+      color: var(--c-muted);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+    }
+    .how-summary::-webkit-details-marker { display: none; }
+    .how-summary::before { content: '▸'; font-size: 10px; transition: transform 0.2s; }
+    details[open] .how-summary::before { transform: rotate(90deg); }
+    .how-body {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .how-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 13px;
+      color: var(--c-text);
+      line-height: 1.5;
+    }
+    .how-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      background: var(--c-green);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .how-note {
+      font-size: 12px;
+      color: var(--c-muted);
+      padding-top: 4px;
+      border-top: 1px solid var(--c-border);
+    }
+
+    /* ── CO₂ row ── */
+    .co2-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 4px;
+    }
+    .co2-leaf { font-size: 11px; }
+    .co2-value { font-size: 11px; color: var(--c-muted); }
+
+    /* ── Sell callout ── */
+    .sell-callout {
+      margin-top: 10px;
+      padding: 14px 16px;
+      background: #f0faf4;
+      border: 1.5px solid var(--c-green);
+      border-radius: 10px;
+    }
+    .sell-title { font-size: 13px; font-weight: 700; color: var(--c-green); margin-bottom: 4px; }
+    .sell-body  { font-size: 13px; color: var(--c-text); line-height: 1.5; }
+
+    /* ── Share button ── */
+    .share-btn {
+      display: block;
+      margin: 10px 0 0;
+      padding: 8px 16px;
+      background: none;
+      border: 1.5px solid var(--c-border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--c-muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .share-btn:hover { border-color: var(--c-green); color: var(--c-green); }
+
+    /* ── Quick-start presets ── */
+    .preset-card { margin-bottom: 12px; }
+    .preset-hint { font-size: 13px; color: var(--c-muted); margin-bottom: 12px; }
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .preset-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      padding: 12px 14px;
+      background: var(--c-bg);
+      border: 1.5px solid var(--c-border);
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+      width: 100%;
+    }
+    .preset-btn:hover { border-color: var(--c-green); background: var(--c-green-light); }
+    .preset-btn.active { border-color: var(--c-green); background: var(--c-green-light); }
+    .preset-emoji { font-size: 22px; line-height: 1; margin-bottom: 4px; }
+    .preset-name { font-size: 13px; font-weight: 600; color: var(--c-text); }
+    .preset-desc { font-size: 11px; color: var(--c-muted); line-height: 1.4; }
+    .preset-summary {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: var(--c-green-light);
+      border: 1px solid var(--c-green);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--c-text);
+      line-height: 1.6;
+    }
+    .preset-summary .ps-label { color: var(--c-muted); }
+    @media (max-width: 480px) {
+      .preset-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="header-title">Vilnius Transport Cost Calculator</div>
+      <div class="header-subtitle">What does your car actually cost per month?</div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ── How it works ── -->
+  <div class="how-it-works">
+    <details>
+      <summary class="how-summary">How to use this calculator</summary>
+      <div class="how-body">
+        <div class="how-step"><span class="how-num">1</span><div><strong>Enter your car details</strong> — purchase price, fuel type, loan, insurance, and parking. The calculator fills in reasonable estimates so you only need to override what you know.</div></div>
+        <div class="how-step"><span class="how-num">2</span><div><strong>Set the Alternatives section</strong> — configure how you would actually move around without a car: public transport pass, carsharing trips, occasional taxi. Set it to match your real lifestyle, not a perfect scenario.</div></div>
+        <div class="how-step"><span class="how-num">3</span><div><strong>Read the results</strong> — all five options appear side by side with the true monthly cost, including the hidden costs most people miss (depreciation, tyres, accident risk). The Car-free mix card shows what switching would actually cost.</div></div>
+        <div class="how-note">All figures are estimates based on Vilnius market data. Override any field with your actual numbers for a more accurate picture.</div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ── Quick-start presets ── -->
+  <section class="card preset-card">
+    <div class="card-title">Quick start</div>
+    <div class="preset-hint">Pick the profile closest to your situation — or skip this and fill in your details below.</div>
+    <div class="preset-grid">
+      <button class="preset-btn" id="preset-daily-driver" onclick="applyPreset('daily-driver')">
+        <span class="preset-emoji">🚗</span>
+        <span class="preset-name">Daily driver</span>
+        <span class="preset-desc">New car, commutes by car every day</span>
+      </button>
+      <button class="preset-btn" id="preset-city-dweller" onclick="applyPreset('city-dweller')">
+        <span class="preset-emoji">🏙️</span>
+        <span class="preset-name">City dweller</span>
+        <span class="preset-desc">Used car, mostly PT + carsharing</span>
+      </button>
+      <button class="preset-btn" id="preset-weekend-escaper" onclick="applyPreset('weekend-escaper')">
+        <span class="preset-emoji">🌲</span>
+        <span class="preset-name">Weekend escaper</span>
+        <span class="preset-desc">Weekday PT, weekend car trips up to 300 km</span>
+      </button>
+      <button class="preset-btn" id="preset-reconsidering" onclick="applyPreset('reconsidering')">
+        <span class="preset-emoji">🔄</span>
+        <span class="preset-name">Reconsidering</span>
+        <span class="preset-desc">Premium car owner asking "is it worth it?"</span>
+      </button>
+    </div>
+    <div id="preset-summary" class="preset-summary" style="display:none"></div>
+  </section>
+
+  <!-- ── Section A: Your situation ── -->
+  <section class="card">
+    <div class="card-title">Your situation</div>
+
+    <div class="field">
+      <label class="field-label">I am…</label>
+      <div class="toggle-group" id="profile-toggle">
+        <button class="active" data-val="planning" onclick="setToggle('profile', 'planning', this)">Planning to buy</button>
+        <button data-val="own" onclick="setToggle('profile', 'own', this)">Already own a car</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Monthly driving distance</label>
+      <div class="slider-row">
+        <input type="range" id="km-per-month" min="200" max="4000" step="100" value="1200" oninput="syncSlider('km-per-month', 'km-per-month-val'); update()">
+        <span class="slider-value"><span id="km-per-month-val">1 200</span> km</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Section B: Your car ── -->
+  <section class="card">
+    <div class="card-title">Your car</div>
+
+    <div class="field">
+      <label class="field-label">Car status</label>
+      <div class="toggle-group" id="car-status-toggle">
+        <button class="active" data-val="new" onclick="setToggle('car-status', 'new', this); onCarStatusChange()">Buying new</button>
+        <button data-val="used" onclick="setToggle('car-status', 'used', this); onCarStatusChange()">Buying used / already own</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Purchase price</label>
+      <div class="input-row">
+        <span class="unit">€</span>
+        <input type="number" id="purchase-price" value="20000" min="500" max="200000" step="500" oninput="onPriceChange(); update()">
+      </div>
+    </div>
+
+    <div class="field" id="field-car-year">
+      <label class="field-label">Year of manufacture</label>
+      <input type="number" id="car-year" value="2020" min="2000" max="2026" oninput="onCarYearChange(); update()">
+    </div>
+
+    <div class="field">
+      <label class="field-label">Fuel type</label>
+      <div class="toggle-group" id="fuel-type-toggle">
+        <button class="active" data-val="petrol" onclick="setToggle('fuel-type', 'petrol', this); onFuelTypeChange()">Petrol</button>
+        <button data-val="diesel" onclick="setToggle('fuel-type', 'diesel', this); onFuelTypeChange()">Diesel</button>
+        <button data-val="electric" onclick="setToggle('fuel-type', 'electric', this); onFuelTypeChange()">Electric</button>
+      </div>
+    </div>
+
+    <div class="field" id="field-consumption-petrol">
+      <label class="field-label">Fuel consumption</label>
+      <div class="slider-row">
+        <input type="range" id="consumption" min="4" max="15" step="0.5" value="7.5" oninput="syncSlider('consumption', 'consumption-val'); update()">
+        <span class="slider-value"><span id="consumption-val">7.5</span> L/100km</span>
+      </div>
+    </div>
+
+    <div class="field" id="field-consumption-electric" style="display:none">
+      <label class="field-label">Energy consumption</label>
+      <div class="slider-row">
+        <input type="range" id="consumption-kwh" min="10" max="30" step="0.5" value="18" oninput="syncSlider('consumption-kwh', 'consumption-kwh-val'); update()">
+        <span class="slider-value"><span id="consumption-kwh-val">18.0</span> kWh/100km</span>
+      </div>
+    </div>
+
+    <!-- Loan -->
+    <details id="details-loan">
+      <summary>
+        Loan / lease
+        <span class="summary-hint" id="loan-hint">tap to configure</span>
+      </summary>
+      <div class="details-body">
+        <div class="field">
+          <div class="checkbox-row">
+            <input type="checkbox" id="has-loan" checked onchange="onLoanToggle(); update()">
+            <label for="has-loan">I have / will take a loan or lease</label>
+          </div>
+        </div>
+        <div class="cond visible" id="loan-fields">
+          <div class="field">
+            <label class="field-label">Loan amount</label>
+            <div class="input-row">
+              <span class="unit">€</span>
+              <input type="number" id="loan-amount" value="20000" min="0" max="200000" step="500" oninput="markCustom('loan-amount-source'); update()">
+            </div>
+            <span class="source-tag" id="loan-amount-source" data-default="20000">Matches purchase price</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Loan term</label>
+            <div class="slider-row">
+              <input type="range" id="loan-term" min="1" max="10" step="1" value="5" oninput="syncSlider('loan-term', 'loan-term-val'); update()">
+              <span class="slider-value"><span id="loan-term-val">5</span> yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">Annual interest rate</label>
+            <div class="slider-row">
+              <input type="range" id="loan-rate" min="0" max="20" step="0.5" value="6.5" oninput="syncSlider('loan-rate', 'loan-rate-val'); update()">
+              <span class="slider-value"><span id="loan-rate-val">6.5</span> %</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Insurance -->
+    <details id="details-insurance">
+      <summary>
+        Insurance
+        <span class="summary-hint" id="insurance-hint">tap to configure</span>
+      </summary>
+      <div class="details-body">
+        <div class="field">
+          <label class="field-label">Coverage type</label>
+          <div class="toggle-group" id="insurance-type-toggle">
+            <button data-val="tpl" onclick="setToggle('insurance-type', 'tpl', this); onInsuranceTypeChange()">TPL only</button>
+            <button class="active" data-val="kasko" onclick="setToggle('insurance-type', 'kasko', this); onInsuranceTypeChange()">TPL + KASKO</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Annual insurance cost</label>
+          <div class="input-row">
+            <span class="unit">€</span>
+            <input type="number" id="insurance-annual" value="980" min="0" max="10000" step="10" oninput="markCustom('insurance-annual-source'); update()">
+          </div>
+          <span class="source-tag" id="insurance-annual-source" data-default="980">Market estimate · 2026</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- Tyres & Service -->
+    <details id="details-tyres">
+      <summary>
+        Tyres &amp; service
+        <span class="summary-hint" id="tyres-hint">tap to configure</span>
+      </summary>
+      <div class="details-body">
+        <div class="field">
+          <div class="checkbox-row">
+            <input type="checkbox" id="seasonal-tyres" checked onchange="update()">
+            <label for="seasonal-tyres">Seasonal tyre changeover (summer + winter sets)</label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Tyre quality</label>
+          <div class="toggle-group" id="tyre-quality-toggle">
+            <button data-val="budget" onclick="setToggle('tyre-quality', 'budget', this); update()">Budget</button>
+            <button class="active" data-val="mid" onclick="setToggle('tyre-quality', 'mid', this); update()">Mid-range</button>
+            <button data-val="premium" onclick="setToggle('tyre-quality', 'premium', this); update()">Premium</button>
+          </div>
+          <span class="source-tag" id="tyre-source">Market estimate · 2026</span>
+        </div>
+        <div class="field">
+          <label class="field-label">Expected tyre lifespan</label>
+          <div class="slider-row">
+            <input type="range" id="tyre-lifespan" min="2" max="6" step="1" value="4" oninput="syncSlider('tyre-lifespan', 'tyre-lifespan-val'); update()">
+            <span class="slider-value"><span id="tyre-lifespan-val">4</span> yr</span>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="field">
+          <label class="field-label">Annual service &amp; maintenance</label>
+          <div class="input-row">
+            <span class="unit">€</span>
+            <input type="number" id="service-annual" value="500" min="0" max="10000" step="50" oninput="markCustom('service-annual-source'); update()">
+          </div>
+          <span class="source-tag" id="service-annual-source" data-default="500">Estimate based on car age · 2026</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- Advanced: planned ownership + residual value -->
+    <details id="details-advanced">
+      <summary>
+        Advanced
+        <span class="summary-hint" id="advanced-hint">depreciation override</span>
+      </summary>
+      <div class="details-body">
+        <div class="field">
+          <label class="field-label">Planned ownership period</label>
+          <div class="slider-row">
+            <input type="range" id="holding-years" min="1" max="15" step="1" value="5" oninput="syncSlider('holding-years', 'holding-years-val'); update()">
+            <span class="slider-value"><span id="holding-years-val">5</span> yr</span>
+          </div>
+          <div style="font-size:12px; color:var(--c-muted); margin-top:2px;">
+            How long you plan to keep the car before selling.
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="field">
+          <label class="field-label">Expected resale value (optional)</label>
+          <div class="input-row">
+            <span class="unit">€</span>
+            <input type="number" id="residual-value" value="" placeholder="leave blank to use model" min="0" oninput="update()" onchange="update()">
+          </div>
+          <div id="residual-hint" style="font-size:12px; color:var(--c-muted); margin-top:6px;">
+            If filled, depreciation = (price − resale) ÷ ownership period. Otherwise the model applies the age-appropriate annual rate to your purchase price.
+          </div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ── Section C: Parking ── -->
+  <section class="card">
+    <div class="card-title">Parking</div>
+
+    <div class="field">
+      <label class="field-label">Home parking</label>
+      <div class="toggle-group" id="home-parking-toggle">
+        <button class="active" data-val="free" onclick="setToggle('home-parking', 'free', this); onHomeParkingChange()">Free</button>
+        <button data-val="rented" onclick="setToggle('home-parking', 'rented', this); onHomeParkingChange()">Rented spot</button>
+        <button data-val="street" onclick="setToggle('home-parking', 'street', this); onHomeParkingChange()">Street zone</button>
+      </div>
+    </div>
+
+    <div class="cond" id="home-parking-rented">
+      <div class="field">
+        <label class="field-label">Monthly parking cost</label>
+        <div class="input-row">
+          <span class="unit">€</span>
+          <input type="number" id="home-rented-cost" value="75" min="0" max="1000" step="5" oninput="update()">
+          <span class="unit">/month</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cond" id="home-parking-street">
+      <div class="field">
+        <label class="field-label">Vilnius parking zone</label>
+        <select id="home-zone" onchange="update()">
+          <option value="green">Green zone — €55/mo (residential)</option>
+          <option value="yellow">Yellow zone — €110/mo (inner districts)</option>
+          <option value="blue">Blue zone — €525/mo (city centre)</option>
+        </select>
+        <span class="source-tag">Vilnius City Municipality · 2026</span>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field">
+      <label class="field-label">Work parking</label>
+      <div class="toggle-group" id="work-parking-toggle">
+        <button class="active" data-val="free" onclick="setToggle('work-parking', 'free', this); onWorkParkingChange()">Free / don't drive</button>
+        <button data-val="paid" onclick="setToggle('work-parking', 'paid', this); onWorkParkingChange()">Paid lot</button>
+        <button data-val="street" onclick="setToggle('work-parking', 'street', this); onWorkParkingChange()">Street zone</button>
+      </div>
+    </div>
+
+    <div class="cond" id="work-parking-paid">
+      <div class="field">
+        <label class="field-label">Daily parking cost</label>
+        <div class="input-row">
+          <span class="unit">€</span>
+          <input type="number" id="work-paid-cost" value="5" min="0" max="100" step="0.5" oninput="update()">
+          <span class="unit">/day</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Days per week</label>
+        <div class="slider-row">
+          <input type="range" id="work-days" min="1" max="7" step="1" value="7" oninput="syncSlider('work-days', 'work-days-val'); update()">
+          <span class="slider-value"><span id="work-days-val">7</span> days</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cond" id="work-parking-street">
+      <div class="field">
+        <label class="field-label">Work area parking zone</label>
+        <select id="work-zone" onchange="update()">
+          <option value="green">Green zone — €55/mo</option>
+          <option value="yellow">Yellow zone — €110/mo</option>
+          <option value="blue">Blue zone — €525/mo</option>
+        </select>
+        <span class="source-tag">Vilnius City Municipality · 2026</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Section D: Alternatives ── -->
+  <section class="card">
+    <div class="card-title">Alternatives to compare</div>
+
+    <!-- Public transport -->
+    <div class="alt-heading">🚌 Public transport</div>
+    <div class="field">
+      <label class="field-label">Pass type</label>
+      <div class="toggle-group" id="pt-ticket-toggle">
+        <button class="active" data-val="monthly" onclick="setToggle('pt-ticket', 'monthly', this); onPTTypeChange()">Monthly €38</button>
+        <button data-val="annual" onclick="setToggle('pt-ticket', 'annual', this); onPTTypeChange()">Annual €28.50/mo</button>
+        <button data-val="single" onclick="setToggle('pt-ticket', 'single', this); onPTTypeChange()">Single tickets</button>
+      </div>
+    </div>
+    <div class="cond" id="pt-single-fields">
+      <div class="field">
+        <label class="field-label">Trips per week (one way)</label>
+        <div class="slider-row">
+          <input type="range" id="pt-trips-per-week" min="1" max="30" step="1" value="10" oninput="syncSlider('pt-trips-per-week', 'pt-trips-val'); update()">
+          <span class="slider-value"><span id="pt-trips-val">10</span> trips</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Ticket validity</label>
+        <div class="toggle-group" id="pt-ticket-size-toggle">
+          <button class="active" data-val="60min" onclick="setToggle('pt-ticket-size', '60min', this); update()">60 min — €1.25</button>
+          <button data-val="30min" onclick="setToggle('pt-ticket-size', '30min', this); update()">30 min — €1.00</button>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Carsharing -->
+    <div class="alt-heading">🔑 Carsharing</div>
+    <div class="alt-subheading">Regular trips</div>
+    <div class="field">
+      <label class="field-label">Trips per week</label>
+      <div class="slider-row">
+        <input type="range" id="cs-trips-per-week" min="0" max="14" step="1" value="3" oninput="syncSlider('cs-trips-per-week', 'cs-trips-val'); update()">
+        <span class="slider-value"><span id="cs-trips-val">3</span> trips</span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Avg trip duration</label>
+      <div class="toggle-group" id="cs-duration-toggle">
+        <button data-val="15" onclick="setToggle('cs-duration', '15', this); update()">15 min</button>
+        <button class="active" data-val="30" onclick="setToggle('cs-duration', '30', this); update()">30 min</button>
+        <button data-val="45" onclick="setToggle('cs-duration', '45', this); update()">45 min</button>
+        <button data-val="60" onclick="setToggle('cs-duration', '60', this); update()">60+ min</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Avg km per trip</label>
+      <div class="input-row">
+        <input type="number" id="cs-avg-km" value="8" min="1" max="200" oninput="update()">
+        <span class="unit">km</span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Preferred service</label>
+      <div class="toggle-group" id="cs-service-toggle">
+        <button class="active" data-val="blended" onclick="setToggle('cs-service', 'blended', this); update()">No preference</button>
+        <button data-val="spark" onclick="setToggle('cs-service', 'spark', this); update()">Spark</button>
+        <button data-val="bolt_drive" onclick="setToggle('cs-service', 'bolt_drive', this); update()">Bolt Drive</button>
+        <button data-val="citybee" onclick="setToggle('cs-service', 'citybee', this); update()">CityBee</button>
+      </div>
+    </div>
+
+    <div class="alt-subheading">Weekend / full-day rides</div>
+    <div class="field">
+      <label class="field-label">Full-day rides per month</label>
+      <div class="slider-row">
+        <input type="range" id="cs-full-days-per-month" min="0" max="8" step="1" value="0"
+               oninput="syncSlider('cs-full-days-per-month', 'cs-fulldays-val'); update()">
+        <span class="slider-value"><span id="cs-fulldays-val">0</span> days</span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Avg km per full day</label>
+      <div class="input-row">
+        <input type="number" id="cs-full-day-km" value="80" min="10" max="500" oninput="update()" onchange="update()">
+        <span class="unit">km</span>
+      </div>
+      <span class="field-hint" id="cs-daily-rate-hint"></span>
+    </div>
+
+    <hr class="divider">
+
+    <!-- MyBee -->
+    <div class="alt-heading">🐝 MyBee subscription</div>
+    <div class="field">
+      <label class="field-label">Car class</label>
+      <div class="toggle-group" id="mybee-class-toggle">
+        <button class="active" data-val="economy" onclick="setToggle('mybee-class', 'economy', this); update()">Economy</button>
+        <button data-val="midrange" onclick="setToggle('mybee-class', 'midrange', this); update()">Mid-range</button>
+        <button data-val="premium" onclick="setToggle('mybee-class', 'premium', this); update()">Premium</button>
+        <button data-val="suv" onclick="setToggle('mybee-class', 'suv', this); update()">SUV</button>
+      </div>
+      <span class="source-tag" id="mybee-price-tag">mybee.lt · Jun 2026</span>
+    </div>
+    <div class="field">
+      <label class="field-label">Fuel type</label>
+      <div class="toggle-group" id="mybee-fuel-toggle">
+        <button class="active" data-val="petrol" onclick="setToggle('mybee-fuel', 'petrol', this); update()">Petrol</button>
+        <button data-val="diesel" onclick="setToggle('mybee-fuel', 'diesel', this); update()">Diesel</button>
+        <button data-val="electric" onclick="setToggle('mybee-fuel', 'electric', this); update()">Electric</button>
+      </div>
+      <span class="field-hint">Fuel not included in subscription — estimated from your km/month</span>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Taxi -->
+    <div class="alt-heading">🚕 Taxi / ride-hailing</div>
+    <div class="field">
+      <label class="field-label">Trips per month</label>
+      <div class="slider-row">
+        <input type="range" id="taxi-trips-per-month" min="0" max="30" step="1" value="4"
+               oninput="syncSlider('taxi-trips-per-month', 'taxi-trips-val'); update()">
+        <span class="slider-value"><span id="taxi-trips-val">4</span> trips</span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Avg fare per trip</label>
+      <div class="input-row">
+        <input type="number" id="taxi-avg-fare" value="8" min="1" max="100" oninput="update()" onchange="update()">
+        <span class="unit">€</span>
+      </div>
+      <span class="field-hint">Bolt taxi avg Vilnius trip ~€8. Adjust to your typical route.</span>
+    </div>
+  </section>
+
+  <!-- ── Results ── -->
+  <section class="card results-card" id="results">
+    <div class="card-title">Monthly cost comparison</div>
+    <div class="scenarios-grid" id="scenarios-grid">
+      <div style="color:var(--c-muted); font-size:13px; padding:12px 0; grid-column:1/-1;">
+        Fill in your details above to compare all options.
+      </div>
+    </div>
+    <div class="data-note" id="data-note" style="display:none">
+      ⚡ Some values use market estimates. Override any field above to use your actual figures.
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Fuel price: EC Weekly Oil Bulletin · Parking zones: Vilnius City Municipality ·
+  Carsharing deductibles verified Jun 2026 ·
+  <a href="https://github.com/" target="_blank">View on GitHub</a><br>
+  v1.0 · Phase 1 · Built with Claude · All figures are estimates — verify with your insurer and bank
+</footer>
+
+<script>
+  // ============================================================
+  // STATE — toggle values tracked here
+  // ============================================================
+  const state = {
+    profile: 'planning',
+    'car-status': 'new',
+    'fuel-type': 'petrol',
+    'insurance-type': 'kasko',
+    'tyre-quality': 'mid',
+    'home-parking': 'free',
+    'work-parking': 'free',
+    // Phase 2 — alternatives
+    'pt-ticket': 'monthly',
+    'pt-ticket-size': '60min',
+    'cs-duration': '30',
+    'cs-service': 'blended',
+    'cs-full-days': '0',
+    'mybee-class': 'economy',
+    'mybee-fuel': 'petrol'
+  };
+
+  // ============================================================
+  // DATA — loaded from data.json
+  // ============================================================
+  let DATA = null;
+
+  // ============================================================
+  // CALCULATION ENGINE — pure functions, no DOM dependency
+  // ============================================================
+
+  function calcLoanPayment(principal, annualRatePct, termYears) {
+    if (!principal || principal <= 0 || termYears <= 0) return 0;
+    if (annualRatePct === 0) return principal / (termYears * 12);
+    const r = annualRatePct / 100 / 12;
+    const n = termYears * 12;
+    return principal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+  }
+
+  function carValueAtAge(price, ageYears) {
+    let v = price;
+    const age = Math.floor(Math.max(0, ageYears));
+    for (let y = 0; y < age; y++) {
+      if (y === 0)      v *= 0.80; // Year 1: −20%
+      else if (y <= 2)  v *= 0.88; // Year 2–3: −12%
+      else if (y <= 5)  v *= 0.90; // Year 4–6: −10%
+      else              v *= 0.92; // Year 7+: −8%
+    }
+    return v;
+  }
+
+  function annualDepreciationRate(ageYears) {
+    // Returns the fraction of current value lost in one year at this age
+    const age = Math.floor(Math.max(0, ageYears));
+    if (age === 0) return 0.20;  // Year 1: −20%
+    if (age <= 2)  return 0.12;  // Year 2–3: −12%
+    if (age <= 5)  return 0.10;  // Year 4–6: −10%
+    return 0.08;                  // Year 7+: −8%
+  }
+
+  function calcMonthlyDepreciation(price, ageYears, residualOverride, holdingYears) {
+    if (!price || price <= 0) return 0;
+    const years = Math.max(0.5, holdingYears || 5);
+    if (residualOverride !== null && !isNaN(residualOverride) && residualOverride >= 0) {
+      // Spread (purchase price − expected resale) over the planned holding period
+      return Math.max(0, price - residualOverride) / years / 12;
+    }
+    // Model: project value loss year-by-year from current price over holding period
+    let futureVal = price;
+    for (let y = 0; y < Math.floor(years); y++) {
+      futureVal *= (1 - annualDepreciationRate(ageYears + y));
+    }
+    // Partial final year
+    const remainder = years - Math.floor(years);
+    if (remainder > 0) futureVal *= (1 - annualDepreciationRate(ageYears + Math.floor(years)) * remainder);
+    return Math.max(0, price - futureVal) / years / 12;
+  }
+
+  function calcFuelMonthly(kmPerMonth, consumption, pricePerUnit) {
+    if (!kmPerMonth || !consumption || !pricePerUnit) return 0;
+    return (kmPerMonth / 100) * consumption * pricePerUnit;
+  }
+
+  function calcParkingMonthly(homeParkingType, homeRentedCost, homeZone,
+                               workParkingType, workPaidCost, workDays, workZone, data) {
+    let total = 0;
+    const zoneMap = {
+      green: data.parking.green_zone_monthly,
+      yellow: data.parking.yellow_zone_monthly,
+      blue: data.parking.blue_zone_monthly
+    };
+
+    if (homeParkingType === 'rented') {
+      total += homeRentedCost || 0;
+    } else if (homeParkingType === 'street') {
+      total += zoneMap[homeZone] || 0;
+    }
+
+    if (workParkingType === 'paid') {
+      total += (workPaidCost || 0) * (workDays || 5) * 4.33;
+    } else if (workParkingType === 'street') {
+      total += zoneMap[workZone] || 0;
+    }
+
+    return total;
+  }
+
+  function calcTyresMonthly(seasonal, quality, lifespanYears, data) {
+    const q = quality || 'mid';
+    const keyMap = { budget: 'budget_set_eur', mid: 'mid_set_eur', premium: 'premium_set_eur' };
+    const setCost = data.tyres[keyMap[q]] || data.tyres.mid_set_eur;
+    const changeover = data.tyres.changeover_eur || 40;
+    const lifespan = lifespanYears || data.tyres.default_lifespan_years;
+    const annualCost = seasonal
+      ? (2 * setCost / lifespan) + (2 * changeover)
+      : (setCost / lifespan);
+    return annualCost / 12;
+  }
+
+  function calcInspectionMonthly(ageYears, data) {
+    const cost = data.inspection.cost_eur || 35;
+    if (ageYears < 3) return 0;
+    if (ageYears < 6) return cost / 24; // every 2 years
+    return cost / 12;                    // annual
+  }
+
+  function calcInsuranceEstimate(price, type, data) {
+    const tpl = data.insurance.tpl_annual_eur || 280;
+    const kaskoRate = (data.insurance.kasko_rate_pct || 3.5) / 100;
+    if (type === 'tpl') return tpl;
+    return Math.round(tpl + (price || 20000) * kaskoRate);
+  }
+
+  function calcServiceEstimate(ageYears) {
+    if (ageYears < 3) return 200;
+    if (ageYears < 7) return 450;
+    return 700;
+  }
+
+  // ── Phase 2: Alternatives ─────────────────────────────────────
+
+  function calcPTMonthly(ticketType, tripsPerWeek, ticketSize, data) {
+    const pt = data.public_transport;
+    if (ticketType === 'annual') return pt.annual_pass / 12;
+    if (ticketType === 'single') {
+      const price = ticketSize === '30min' ? pt.single_30min : pt.single_60min;
+      return (tripsPerWeek || 10) * 4.33 * price;
+    }
+    return pt.monthly_pass; // default: monthly
+  }
+
+  function calcCarsharingMonthly(tripsPerWeek, avgMinutes, avgKm, service, fullDaysPerMonth, fullDayKm, data) {
+    const cs = data.carsharing;
+    let perMin, perKm, deductible;
+    if (service === 'spark') {
+      perMin = cs.spark_per_min; perKm = cs.spark_per_km; deductible = cs.spark_deductible_eur;
+    } else if (service === 'bolt_drive') {
+      perMin = cs.bolt_drive_per_min; perKm = cs.bolt_drive_per_km; deductible = cs.bolt_drive_deductible_eur;
+    } else if (service === 'citybee') {
+      perMin = cs.citybee_per_min; perKm = cs.citybee_per_km; deductible = 1200;
+    } else {
+      perMin = cs.blended_per_min; perKm = cs.blended_per_km; deductible = 750;
+    }
+
+    // Per-day cost including km charges
+    const km = fullDayKm || 80;
+    let dailyRateBase, dailyCostPerDay, dailyRateDisplay;
+    if (service === 'spark') {
+      // Package: €49 + 100 free km, then €0.35/km
+      const base = cs.spark_daily_eur || 49;
+      const freeKm = cs.spark_daily_free_km || 100;
+      const extraKmRate = cs.spark_daily_per_km || 0.35;
+      dailyCostPerDay = base + Math.max(0, km - freeKm) * extraKmRate;
+      dailyRateBase = base;
+      dailyRateDisplay = '€' + base + ' + km';
+    } else if (service === 'bolt_drive') {
+      const base = cs.bolt_drive_daily_eur || 50;
+      const freeKm = cs.bolt_drive_daily_free_km || 100;
+      const extraKmRate = cs.bolt_drive_daily_per_km || 0.12;
+      dailyCostPerDay = base + Math.max(0, km - freeKm) * extraKmRate;
+      dailyRateBase = base;
+      dailyRateDisplay = '€' + base + ' + km';
+    } else if (service === 'citybee') {
+      const base = cs.citybee_daily_eur || 45.9;
+      const freeKm = cs.citybee_daily_free_km || 100;
+      const extraKmRate = cs.citybee_daily_per_km || 0.27;
+      dailyCostPerDay = base + Math.max(0, km - freeKm) * extraKmRate;
+      dailyRateBase = base;
+      dailyRateDisplay = '€' + base + ' + km';
+    } else {
+      // blended
+      const base = cs.blended_daily_eur || 48;
+      const freeKm = cs.blended_daily_free_km || 100;
+      const extraKmRate = cs.blended_daily_per_km || 0.20;
+      dailyCostPerDay = base + Math.max(0, km - freeKm) * extraKmRate;
+      dailyRateBase = base;
+      dailyRateDisplay = '€' + base + ' + km';
+    }
+
+    const tripsPerMonth = (tripsPerWeek || 0) * 4.33;
+    const rideCost = tripsPerMonth * ((avgMinutes || 30) * perMin + (avgKm || 8) * perKm);
+    const accidentRisk = deductible / (8 * 12);
+    const fullDayCost = (fullDaysPerMonth || 0) * dailyCostPerDay;
+    return { ride: rideCost, accidentRisk, fullDay: fullDayCost, dailyCostPerDay, dailyRateDisplay, total: rideCost + accidentRisk + fullDayCost };
+  }
+
+  function calcMyBeeMonthly(carClass, fuelType, kmPerMonth, data) {
+    const mb = data.mybee;
+    const subscription = { economy: mb.economy_monthly, midrange: mb.midrange_monthly,
+                           premium: mb.premium_monthly, suv: mb.suv_monthly }[carClass] || mb.economy_monthly;
+    const km = kmPerMonth || 1200;
+    let fuelCost = 0;
+    if (fuelType === 'electric') {
+      const kwh100 = mb[carClass + '_kwh100km'] || 18;
+      fuelCost = km / 100 * kwh100 * (data.fuel.electricity_eur_per_kwh || 0.20);
+    } else if (fuelType === 'diesel') {
+      const l100 = mb[carClass + '_diesel_l100km'] || 7;
+      fuelCost = km / 100 * l100 * (data.fuel.diesel_eur_per_litre || 1.88);
+    } else {
+      const l100 = mb[carClass + '_petrol_l100km'] || 7.5;
+      fuelCost = km / 100 * l100 * (data.fuel.euro95_eur_per_litre || 1.79);
+    }
+    return { subscription, fuel: fuelCost, total: subscription + fuelCost };
+  }
+
+  function calcTaxiMonthly(tripsPerMonth, avgFare) {
+    return (tripsPerMonth || 0) * (avgFare || 8);
+  }
+
+  // ── CO₂ calculations ─────────────────────────────────────────
+
+  function calcCO2Car(inp, data) {
+    const co2 = data.co2;
+    if (!co2) return 0;
+    if (inp.fuelType === 'electric') return inp.kmPerMonth / 100 * inp.kwhPer100km * co2.grid_kg_per_kwh;
+    if (inp.fuelType === 'diesel')   return inp.kmPerMonth / 100 * inp.litresPer100km * co2.diesel_kg_per_litre;
+    return inp.kmPerMonth / 100 * inp.litresPer100km * co2.petrol_kg_per_litre;
+  }
+
+  function calcCO2PT(inp, data) {
+    const co2 = data.co2;
+    if (!co2) return 0;
+    // For pass users assume ~500 km/mo; for single tickets use actual trips × 5 km avg
+    const km = inp.ptTicketType === 'single'
+      ? inp.ptTripsPerWeek * 4.33 * 5
+      : 500;
+    return km * co2.pt_bus_kg_per_km;
+  }
+
+  function calcCO2Carsharing(inp, data) {
+    const co2 = data.co2;
+    if (!co2) return 0;
+    const emFactor = inp.csService === 'spark'
+      ? co2.spark_electric_kg_per_km
+      : co2.bolt_drive_mixed_kg_per_km || 0.18;
+    const regularKm = inp.csTripsPerWeek * 4.33 * (inp.csAvgKm || 8);
+    const fullDayKm  = inp.csFullDaysPerMonth * (inp.csFullDayKm || 80);
+    return (regularKm + fullDayKm) * emFactor;
+  }
+
+  function calcCO2MyBee(inp, data) {
+    const co2 = data.co2;
+    const mb  = data.mybee;
+    if (!co2 || !mb) return 0;
+    const km = inp.kmPerMonth || 1200;
+    if (inp.mybeeFuelType === 'electric') {
+      const kwh100 = mb[inp.mybeeClass + '_kwh100km'] || 18;
+      return km / 100 * kwh100 * co2.grid_kg_per_kwh;
+    }
+    if (inp.mybeeFuelType === 'diesel') {
+      const l100 = mb[inp.mybeeClass + '_diesel_l100km'] || 7;
+      return km / 100 * l100 * co2.diesel_kg_per_litre;
+    }
+    const l100 = mb[inp.mybeeClass + '_petrol_l100km'] || 7.5;
+    return km / 100 * l100 * co2.petrol_kg_per_litre;
+  }
+
+  function calcCO2Mix(inp, data) {
+    const co2 = data.co2;
+    if (!co2) return 0;
+    const taxiKm = inp.taxiTripsPerMonth * 8; // ~8 km avg Vilnius taxi trip
+    const taxiCO2 = taxiKm * (co2.bolt_drive_mixed_kg_per_km || 0.18);
+    return calcCO2PT(inp, data) + calcCO2Carsharing(inp, data) + taxiCO2;
+  }
+
+  // Fixed freedom scores (Phase 4: user-adjustable)
+  // Factors: parking stress (20%), flexibility (25%), no-ownership burden (20%),
+  //          spontaneity (20%), outside-city access (15%)
+  const FREEDOM_SCORES = {
+    car:        2*0.20 + 9*0.25 + 2*0.20 + 9*0.20 + 9*0.15, // 6.2
+    pt:         9*0.20 + 3*0.25 + 10*0.20 + 2*0.20 + 2*0.15, // 5.3
+    carsharing: 8*0.20 + 6*0.25 + 9*0.20 + 6*0.20 + 5*0.15, // 6.9
+    mybee:      6*0.20 + 7*0.25 + 9*0.20 + 7*0.20 + 8*0.15,  // 7.4
+    mix:        9*0.20 + 8*0.25 + 10*0.20 + 7*0.20 + 6*0.15  // 7.9
+  };
+
+  function calcTrueMonthlyCost(inp, data) {
+    const loan = inp.hasLoan
+      ? calcLoanPayment(inp.loanAmount, inp.loanRate, inp.loanYears)
+      : 0;
+
+    const depreciation = calcMonthlyDepreciation(
+      inp.purchasePrice, inp.carAge, inp.residualValue, inp.holdingYears
+    );
+
+    const insurance = inp.insuranceAnnual / 12;
+
+    const parking = calcParkingMonthly(
+      inp.homeParkingType, inp.homeRentedCost, inp.homeZone,
+      inp.workParkingType, inp.workPaidCost, inp.workDays, inp.workZone,
+      data
+    );
+
+    let fuel;
+    if (inp.fuelType === 'electric') {
+      fuel = calcFuelMonthly(inp.kmPerMonth, inp.kwhPer100km, data.fuel.electricity_eur_per_kwh);
+    } else {
+      const fuelPrice = inp.fuelType === 'diesel'
+        ? data.fuel.diesel_eur_per_litre
+        : data.fuel.euro95_eur_per_litre;
+      fuel = calcFuelMonthly(inp.kmPerMonth, inp.litresPer100km, fuelPrice);
+    }
+
+    const tyres = calcTyresMonthly(inp.seasonalTyres, inp.tyreQuality, inp.tyreLifespan, data);
+    const service = inp.serviceAnnual / 12;
+
+    const items = { loan, depreciation, insurance, parking, fuel, tyres, service };
+    const total = Object.values(items).reduce((a, b) => a + b, 0);
+    return { ...items, total };
+  }
+
+  // ============================================================
+  // UI HELPERS
+  // ============================================================
+
+  function fmt(n) {
+    return Math.round(n).toLocaleString('lt-LT');
+  }
+
+  function setToggle(name, val, btn) {
+    state[name] = val;
+    const group = btn.closest('.toggle-group');
+    if (group) group.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    update();
+  }
+
+  function syncSlider(sliderId, displayId) {
+    const v = parseFloat(document.getElementById(sliderId).value);
+    const el = document.getElementById(displayId);
+    if (displayId === 'km-per-month-val') {
+      el.textContent = v.toLocaleString('lt-LT');
+    } else {
+      el.textContent = Number.isInteger(v) ? v : v.toFixed(1);
+    }
+  }
+
+  function markCustom(sourceId) {
+    const el = document.getElementById(sourceId);
+    if (!el) return;
+    el.textContent = '⚡ custom value';
+    el.classList.add('custom');
+  }
+
+  function showCond(id, visible) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('visible', visible);
+  }
+
+  // ============================================================
+  // INPUT READING
+  // ============================================================
+
+  function num(id, fallback = 0) {
+    const v = parseFloat(document.getElementById(id)?.value);
+    return isNaN(v) ? fallback : v;
+  }
+
+  function checked(id) {
+    return document.getElementById(id)?.checked ?? false;
+  }
+
+  function sel(id) {
+    return document.getElementById(id)?.value ?? '';
+  }
+
+  function getInputs() {
+    const carYear = num('car-year', 2020);
+    const currentYear = new Date().getFullYear();
+    const carAge = state['car-status'] === 'new' ? 0 : Math.max(0, currentYear - carYear);
+
+    const residualRaw = document.getElementById('residual-value')?.value;
+    const residualValue = residualRaw && residualRaw.trim() !== ''
+      ? parseFloat(residualRaw)
+      : null;
+
+    return {
+      profile: state.profile,
+      kmPerMonth: num('km-per-month', 1200),
+      carStatus: state['car-status'],
+      purchasePrice: num('purchase-price', 20000),
+      carAge,
+      fuelType: state['fuel-type'],
+      litresPer100km: num('consumption', 7.5),
+      kwhPer100km: num('consumption-kwh', 18),
+      hasLoan: checked('has-loan'),
+      loanAmount: num('loan-amount', 0),
+      loanYears: num('loan-term', 5),
+      loanRate: num('loan-rate', 6.5),
+      insuranceType: state['insurance-type'],
+      insuranceAnnual: num('insurance-annual', 600),
+      seasonalTyres: checked('seasonal-tyres'),
+      tyreQuality: state['tyre-quality'],
+      tyreLifespan: num('tyre-lifespan', 4),
+      serviceAnnual: num('service-annual', 500),
+      residualValue,
+      holdingYears: num('holding-years', 5),
+      homeParkingType: state['home-parking'],
+      homeRentedCost: num('home-rented-cost', 0),
+      homeZone: sel('home-zone') || 'green',
+      workParkingType: state['work-parking'],
+      workPaidCost: num('work-paid-cost', 0),
+      workDays: num('work-days', 7),
+      workZone: sel('work-zone') || 'green',
+      // Phase 2 — alternatives
+      ptTicketType: state['pt-ticket'],
+      ptTripsPerWeek: num('pt-trips-per-week', 10),
+      ptTicketSize: state['pt-ticket-size'],
+      csTripsPerWeek: num('cs-trips-per-week', 3),
+      csAvgMinutes: parseInt(state['cs-duration'] || '30'),
+      csAvgKm: num('cs-avg-km', 8),
+      csService: state['cs-service'],
+      csFullDaysPerMonth: num('cs-full-days-per-month', 0),
+      csFullDayKm: num('cs-full-day-km', 80),
+      mybeeClass: state['mybee-class'],
+      mybeeFuelType: state['mybee-fuel'],
+      taxiTripsPerMonth: num('taxi-trips-per-month', 4),
+      taxiAvgFare: num('taxi-avg-fare', 8)
+    };
+  }
+
+  // ============================================================
+  // RENDER RESULTS — Phase 2 multi-scenario cards
+  // ============================================================
+
+  function breakdownRow(label, amount, note) {
+    const isZero = Math.round(amount) === 0;
+    return `<div class="breakdown-item">
+      <div><div class="item-label">${label}</div>${note ? `<div class="item-note">${note}</div>` : ''}</div>
+      <div class="item-amount ${isZero ? 'zero' : ''}">${isZero ? '—' : '€' + fmt(amount) + '/mo'}</div>
+    </div>`;
+  }
+
+  function renderCarBreakdown(r, inp) {
+    return [
+      breakdownRow('Loan / lease', r.loan, inp.hasLoan ? null : 'no loan'),
+      breakdownRow('Depreciation', r.depreciation, inp.residualValue !== null ? 'custom residual' : 'model-based'),
+      breakdownRow('Insurance', r.insurance, inp.insuranceType === 'tpl' ? 'TPL only' : 'TPL + KASKO'),
+      breakdownRow('Parking', r.parking, null),
+      breakdownRow('Fuel', r.fuel, inp.fuelType + ' · ' + inp.kmPerMonth.toLocaleString('lt-LT') + ' km/mo'),
+      breakdownRow('Tyres', r.tyres, inp.seasonalTyres ? 'seasonal · ' + inp.tyreQuality : inp.tyreQuality),
+      breakdownRow('Service', r.service, 'estimate'),
+    ].join('');
+  }
+
+  function renderPTBreakdown(ptCost, inp) {
+    if (inp.ptTicketType === 'monthly') return breakdownRow('Monthly JUDU pass', ptCost, 'all buses & trolleys');
+    if (inp.ptTicketType === 'annual') return breakdownRow('Annual pass (amortised)', ptCost, '€342/yr ÷ 12');
+    return breakdownRow('Single tickets', ptCost,
+      inp.ptTripsPerWeek + ' trips/wk × ' + (inp.ptTicketSize === '30min' ? '€1.00' : '€1.25'));
+  }
+
+  function renderCSBreakdown(cs, inp) {
+    const service = { blended: 'Blended avg', spark: 'Spark', bolt_drive: 'Bolt Drive', citybee: 'CityBee' }[inp.csService] || 'Blended';
+    const rows = [
+      breakdownRow('Ride cost', cs.ride, service + ' · ' + inp.csTripsPerWeek + ' trips/wk · ' + inp.csAvgMinutes + ' min · ' + inp.csAvgKm + ' km'),
+      breakdownRow('Accident risk (amortised)', cs.accidentRisk, 'deductible ÷ 8yr avg fault interval'),
+    ];
+    if (cs.fullDay > 0) {
+      rows.push(breakdownRow('Weekend / full-day rides', cs.fullDay,
+        inp.csFullDaysPerMonth + ' days × €' + Math.round(cs.dailyCostPerDay) + '/day (' + inp.csFullDayKm + ' km incl.)'));
+    }
+    return rows.join('');
+  }
+
+  function renderMyBeeBreakdown(r, inp) {
+    const labels = { economy: 'Economy', midrange: 'Mid-range', premium: 'Premium', suv: 'SUV' };
+    const fuelLabels = { petrol: 'petrol', diesel: 'diesel', electric: 'electricity' };
+    return [
+      breakdownRow('Subscription', r.subscription, labels[inp.mybeeClass] + ' — incl. insurance, tyres, service'),
+      breakdownRow('Fuel', r.fuel, fuelLabels[inp.mybeeFuelType] + ' · ' + inp.kmPerMonth.toLocaleString('lt-LT') + ' km/mo (est.)'),
+      breakdownRow('Depreciation', 0, 'no risk — covered by MyBee'),
+      breakdownRow('Insurance', 0, 'included'),
+    ].join('');
+  }
+
+  function renderMixBreakdown(mix, inp) {
+    const ptLabels = { monthly: 'Monthly pass', annual: 'Annual pass (÷12)', single: inp.ptTripsPerWeek + ' trips/wk' };
+    const rows = [
+      breakdownRow('Public transport', mix.pt, ptLabels[inp.ptTicketType] || 'monthly pass'),
+      breakdownRow('Carsharing', mix.carsharing, inp.csTripsPerWeek + ' trips/wk · ' + (inp.csFullDaysPerMonth > 0 ? inp.csFullDaysPerMonth + ' full days/mo' : 'no full days')),
+      breakdownRow('Taxi / ride-hailing', mix.taxi, inp.taxiTripsPerMonth + ' trips × €' + inp.taxiAvgFare),
+    ];
+    return rows.join('');
+  }
+
+  function renderComparison(scenarios, inp) {
+    const grid = document.getElementById('scenarios-grid');
+    const totals = scenarios.map(s => s.total);
+    const minTotal = Math.min(...totals);
+
+    const mixScenario = scenarios.find(s => s.id === 'mix');
+    const otherScenarios = scenarios.filter(s => s.id !== 'mix');
+
+    function renderCard(s, featured) {
+      const isCheapest = Math.round(s.total) === Math.round(minTotal);
+      const score = FREEDOM_SCORES[s.id] || 5;
+      const saving = featured && mixScenario ? Math.round(scenarios.find(sc => sc.id === 'car').total - mixScenario.total) : 0;
+      return `
+        <div class="scenario-card${isCheapest ? ' cheapest' : ''}${featured ? ' mix-featured' : ''}">
+          ${isCheapest ? '<div class="cheapest-badge">Cheapest</div>' : ''}
+          <div class="scenario-name">${s.emoji} ${s.name}</div>
+          <div class="scenario-total">€${fmt(Math.round(s.total))}<span class="scenario-unit">/mo</span></div>
+          ${featured && saving > 0 ? `<div class="mix-saving">Save ~€${fmt(saving)}/mo vs owning a car</div>` : ''}
+          <div class="freedom-row">
+            <span class="freedom-label">Freedom</span>
+            <div class="freedom-bar-wrap"><div class="freedom-bar-fill" style="width:${score * 10}%"></div></div>
+            <span class="freedom-value">${score.toFixed(1)}</span>
+          </div>
+          <div class="co2-row">
+            <span class="co2-leaf">🌱</span>
+            <span class="co2-value">${Math.round(s.co2)} kg CO₂/mo</span>
+          </div>
+          <details>
+            <summary>Show breakdown</summary>
+            <div class="details-body card-breakdown">${s.breakdown}</div>
+          </details>
+        </div>`;
+    }
+
+    grid.innerHTML =
+      (mixScenario ? renderCard(mixScenario, true) : '') +
+      otherScenarios.map(s => renderCard(s, false)).join('');
+
+    document.getElementById('data-note').style.display = 'block';
+
+    // "What if I sold my car?" callout
+    const carScen  = scenarios.find(s => s.id === 'car');
+    const mixScen  = scenarios.find(s => s.id === 'mix');
+    let sellCallout = document.getElementById('sell-callout');
+    if (!sellCallout) {
+      sellCallout = document.createElement('div');
+      sellCallout.id = 'sell-callout';
+      sellCallout.className = 'sell-callout';
+      grid.parentNode.insertBefore(sellCallout, grid.nextSibling);
+    }
+    if (carScen && mixScen) {
+      const saving   = Math.round(carScen.total - mixScen.total);
+      const co2saved = Math.round(carScen.co2 - mixScen.co2);
+      const annualSaving = Math.round(saving * 12);
+      if (saving > 0) {
+        sellCallout.style.display = 'block';
+        sellCallout.innerHTML =
+          `<div class="sell-title">💡 What if you sold your car?</div>` +
+          `<div class="sell-body">Switching to the car-free mix could save you ` +
+          `<strong>€${fmt(saving)}/mo</strong> — that's <strong>€${fmt(annualSaving)}/yr</strong>.` +
+          (co2saved > 0 ? ` You'd also cut <strong>${co2saved} kg CO₂/mo</strong>.` : '') +
+          `</div>`;
+      } else {
+        sellCallout.style.display = 'none';
+      }
+    }
+
+    // Share button
+    let shareBtn = document.getElementById('share-btn');
+    if (!shareBtn) {
+      shareBtn = document.createElement('button');
+      shareBtn.id = 'share-btn';
+      shareBtn.className = 'share-btn';
+      shareBtn.textContent = '📋 Copy summary';
+      shareBtn.onclick = shareSummary;
+      const dataNote = document.getElementById('data-note');
+      dataNote.parentNode.insertBefore(shareBtn, dataNote.nextSibling);
+    }
+
+    // Update residual hint
+    const residualHint = document.getElementById('residual-hint');
+    if (residualHint) {
+      const carScenario = scenarios.find(s => s.id === 'car');
+      if (carScenario && inp.residualValue !== null) {
+        const modelDep = calcMonthlyDepreciation(inp.purchasePrice, inp.carAge, null, inp.holdingYears);
+        residualHint.style.color = 'var(--c-green)';
+        residualHint.textContent = '✓ Override active over ' + inp.holdingYears + ' yr — depreciation: €' + fmt(Math.round(carScenario.r.depreciation)) + '/mo (model: €' + fmt(Math.round(modelDep)) + '/mo)';
+      } else {
+        residualHint.style.color = 'var(--c-muted)';
+        residualHint.textContent = 'If filled, depreciation = (price − resale) ÷ ownership period. Otherwise the model applies the age-appropriate annual rate to your purchase price.';
+      }
+    }
+
+  }
+
+  // ============================================================
+  // EVENT HANDLERS — UI reactions
+  // ============================================================
+
+  function onCarStatusChange() {
+    const isUsed = state['car-status'] === 'used';
+    document.getElementById('field-car-year').style.display = isUsed ? 'block' : 'none';
+    updateLoanHint();
+  }
+
+  function onFuelTypeChange() {
+    const isElectric = state['fuel-type'] === 'electric';
+    document.getElementById('field-consumption-petrol').style.display = isElectric ? 'none' : 'block';
+    document.getElementById('field-consumption-electric').style.display = isElectric ? 'block' : 'none';
+    update();
+  }
+
+  function onLoanToggle() {
+    showCond('loan-fields', checked('has-loan'));
+    updateLoanHint();
+  }
+
+  function onHomeParkingChange() {
+    showCond('home-parking-rented', state['home-parking'] === 'rented');
+    showCond('home-parking-street', state['home-parking'] === 'street');
+    update();
+  }
+
+  function onWorkParkingChange() {
+    showCond('work-parking-paid', state['work-parking'] === 'paid');
+    showCond('work-parking-street', state['work-parking'] === 'street');
+    update();
+  }
+
+  function onPTTypeChange() {
+    showCond('pt-single-fields', state['pt-ticket'] === 'single');
+    update();
+  }
+
+  function onPriceChange() {
+    if (!DATA) return;
+    const price = num('purchase-price', 20000);
+
+    // Sync loan amount unless user has overridden it
+    const loanSourceEl = document.getElementById('loan-amount-source');
+    if (loanSourceEl && !loanSourceEl.classList.contains('custom')) {
+      document.getElementById('loan-amount').value = price;
+      loanSourceEl.setAttribute('data-default', price);
+    }
+
+    // Sync insurance estimate unless user has overridden it
+    const insSourceEl = document.getElementById('insurance-annual-source');
+    if (insSourceEl && !insSourceEl.classList.contains('custom')) {
+      const est = calcInsuranceEstimate(price, state['insurance-type'], DATA);
+      document.getElementById('insurance-annual').value = est;
+      updateInsuranceHint();
+    }
+  }
+
+  function onInsuranceTypeChange() {
+    if (!DATA) return;
+    const sourceEl = document.getElementById('insurance-annual-source');
+    if (sourceEl && !sourceEl.classList.contains('custom')) {
+      const price = num('purchase-price', 20000);
+      const est = calcInsuranceEstimate(price, state['insurance-type'], DATA);
+      document.getElementById('insurance-annual').value = est;
+      updateInsuranceHint();
+    }
+    update();
+  }
+
+  function onCarYearChange() {
+    if (!DATA) return;
+    const carYear = num('car-year', 2020);
+    const age = Math.max(0, new Date().getFullYear() - carYear);
+    const sourceEl = document.getElementById('service-annual-source');
+    if (sourceEl && !sourceEl.classList.contains('custom')) {
+      const est = calcServiceEstimate(age);
+      document.getElementById('service-annual').value = est;
+    }
+  }
+
+  function updateLoanHint() {
+    const hint = document.getElementById('loan-hint');
+    if (!hint) return;
+    const hasLoan = checked('has-loan');
+    if (!hasLoan) { hint.textContent = 'no loan'; return; }
+    const payment = calcLoanPayment(num('loan-amount'), num('loan-rate'), num('loan-term'));
+    hint.textContent = '≈ €' + fmt(payment) + '/mo';
+  }
+
+  function updateInsuranceHint() {
+    const hint = document.getElementById('insurance-hint');
+    if (!hint) return;
+    const annual = num('insurance-annual', 0);
+    hint.textContent = '€' + fmt(annual) + '/yr';
+  }
+
+  function updateCsDailyHint(inp, csResult) {
+    const hint = document.getElementById('cs-daily-rate-hint');
+    if (!hint) return;
+    const serviceLabels = { blended: 'Blended avg', spark: 'Spark', bolt_drive: 'Bolt Drive', citybee: 'CityBee' };
+    const label = serviceLabels[inp.csService] || 'Blended avg';
+    hint.textContent = csResult.dailyRateDisplay + ' · ' + label + ' · ' + inp.csFullDayKm + ' km/day → €' + Math.round(csResult.dailyCostPerDay) + '/day';
+  }
+
+  // ============================================================
+  // MAIN UPDATE FUNCTION
+  // ============================================================
+
+  function update() {
+    if (!DATA) return;
+    const inp = getInputs();
+
+    // Your car
+    const carResult = calcTrueMonthlyCost(inp, DATA);
+
+    // PT
+    const ptCost = calcPTMonthly(inp.ptTicketType, inp.ptTripsPerWeek, inp.ptTicketSize, DATA);
+
+    // Carsharing
+    const csResult = calcCarsharingMonthly(inp.csTripsPerWeek, inp.csAvgMinutes, inp.csAvgKm, inp.csService, inp.csFullDaysPerMonth, inp.csFullDayKm, DATA);
+
+    // MyBee
+    const mybeeResult = calcMyBeeMonthly(inp.mybeeClass, inp.mybeeFuelType, inp.kmPerMonth, DATA);
+
+    // Taxi
+    const taxiCost = calcTaxiMonthly(inp.taxiTripsPerMonth, inp.taxiAvgFare);
+
+    // Car-free mix
+    const mixTotal = ptCost + csResult.total + taxiCost;
+    const mixResult = { pt: ptCost, carsharing: csResult.total, taxi: taxiCost };
+
+    const scenarios = [
+      { id: 'mix',        emoji: '🎯', name: 'Car-free mix',      total: mixTotal,          co2: calcCO2Mix(inp, DATA),         breakdown: renderMixBreakdown(mixResult, inp) },
+      { id: 'car',        emoji: '🚗', name: 'Your car',          total: carResult.total,   co2: calcCO2Car(inp, DATA),  r: carResult, breakdown: renderCarBreakdown(carResult, inp) },
+      { id: 'pt',         emoji: '🚌', name: 'Public transport',  total: ptCost,            co2: calcCO2PT(inp, DATA),          breakdown: renderPTBreakdown(ptCost, inp) },
+      { id: 'carsharing', emoji: '🔑', name: 'Carsharing only',   total: csResult.total,    co2: calcCO2Carsharing(inp, DATA),  breakdown: renderCSBreakdown(csResult, inp) },
+      { id: 'mybee',      emoji: '🐝', name: 'MyBee',             total: mybeeResult.total, co2: calcCO2MyBee(inp, DATA),       breakdown: renderMyBeeBreakdown(mybeeResult, inp) },
+    ];
+
+    renderComparison(scenarios, inp);
+    updateLoanHint();
+    updateInsuranceHint();
+    updateCsDailyHint(inp, csResult);
+  }
+
+  // ============================================================
+  // SHARE
+  // ============================================================
+
+  function shareSummary() {
+    if (!DATA) return;
+    const inp = getInputs();
+    const carResult  = calcTrueMonthlyCost(inp, DATA);
+    const ptCost     = calcPTMonthly(inp.ptTicketType, inp.ptTripsPerWeek, inp.ptTicketSize, DATA);
+    const csResult   = calcCarsharingMonthly(inp.csTripsPerWeek, inp.csAvgMinutes, inp.csAvgKm, inp.csService, inp.csFullDaysPerMonth, inp.csFullDayKm, DATA);
+    const mybeeResult = calcMyBeeMonthly(inp.mybeeClass, inp.mybeeFuelType, inp.kmPerMonth, DATA);
+    const taxiCost   = calcTaxiMonthly(inp.taxiTripsPerMonth, inp.taxiAvgFare);
+    const mixTotal   = ptCost + csResult.total + taxiCost;
+
+    const lines = [
+      'Vilnius Transport Cost Calculator',
+      '─────────────────────────────────',
+      `Car (${inp.kmPerMonth.toLocaleString('lt-LT')} km/mo, €${inp.purchasePrice.toLocaleString('lt-LT')}): €${fmt(carResult.total)}/mo`,
+      `Car-free mix (PT + carsharing + taxi): €${fmt(mixTotal)}/mo`,
+      `Public transport only: €${fmt(ptCost)}/mo`,
+      `Carsharing only: €${fmt(csResult.total)}/mo`,
+      `MyBee subscription: €${fmt(mybeeResult.total)}/mo`,
+      '─────────────────────────────────',
+      `Potential monthly saving vs car: €${fmt(Math.max(0, carResult.total - mixTotal))}`,
+      '',
+      'vilnius-transport-calculator.netlify.app',
+    ];
+
+    const text = lines.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('share-btn');
+      if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy summary'; }, 2000); }
+    }).catch(() => {
+      // Fallback: select a temporary textarea
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const btn = document.getElementById('share-btn');
+      if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy summary'; }, 2000); }
+    });
+  }
+
+  // ============================================================
+  // LIFESTYLE PRESETS
+  // ============================================================
+
+  const PRESETS = {
+    // 🚗 Daily driver: commutes by car every day, ~2000 km from daily use + occasional weekend trips
+    // Car-free substitute: PT for commute backbone + heavy carsharing for daily flexibility + a few full-day rides
+    'daily-driver': {
+      'km-per-month': 2000, 'car-status': 'new', 'purchase-price': 25000,
+      'fuel-type': 'petrol', 'consumption': 8.0,
+      'has-loan': true, 'loan-amount': 25000, 'loan-term': 5, 'loan-rate': 6.5,
+      'insurance-type': 'kasko', 'seasonal-tyres': true, 'tyre-quality': 'mid', 'tyre-lifespan': 4,
+      'service-annual': 400, 'holding-years': 5,
+      'home-parking': 'free', 'work-parking': 'paid', 'work-paid-cost': 5, 'work-days': 5,
+      'pt-ticket': 'monthly',
+      'cs-service': 'blended', 'cs-trips-per-week': 10, 'cs-duration': '30', 'cs-avg-km': 10,
+      'cs-full-days-per-month': 2, 'cs-full-day-km': 100,
+      'mybee-class': 'midrange', 'mybee-fuel': 'petrol',
+      'taxi-trips-per-month': 2, 'taxi-avg-fare': 8,
+    },
+    // 🏙️ City dweller: barely leaves the city, 500 km is mostly short errands
+    // Car-free substitute: PT as primary + occasional carsharing for errands + more taxi (city lifestyle)
+    'city-dweller': {
+      'km-per-month': 500, 'car-status': 'used', 'car-year': 2018, 'purchase-price': 9000,
+      'fuel-type': 'petrol', 'consumption': 7.0,
+      'has-loan': false, 'loan-amount': 0, 'loan-term': 5, 'loan-rate': 6.5,
+      'insurance-type': 'tpl', 'seasonal-tyres': true, 'tyre-quality': 'budget', 'tyre-lifespan': 5,
+      'service-annual': 450, 'holding-years': 5,
+      'home-parking': 'free', 'work-parking': 'free',
+      'pt-ticket': 'monthly',
+      'cs-service': 'blended', 'cs-trips-per-week': 3, 'cs-duration': '30', 'cs-avg-km': 6,
+      'cs-full-days-per-month': 0, 'cs-full-day-km': 80,
+      'mybee-class': 'economy', 'mybee-fuel': 'petrol',
+      'taxi-trips-per-month': 8, 'taxi-avg-fare': 8,
+    },
+    // 🌲 Weekend escaper: PT/carsharing on weekdays, but 4 long weekend drives per month (150-200 km each)
+    // The km is weekend-concentrated — car-free substitute needs full-day carsharing as the core
+    'weekend-escaper': {
+      'km-per-month': 1400, 'car-status': 'used', 'car-year': 2021, 'purchase-price': 18000,
+      'fuel-type': 'petrol', 'consumption': 7.5,
+      'has-loan': true, 'loan-amount': 15000, 'loan-term': 5, 'loan-rate': 6.5,
+      'insurance-type': 'kasko', 'seasonal-tyres': true, 'tyre-quality': 'mid', 'tyre-lifespan': 4,
+      'service-annual': 400, 'holding-years': 5,
+      'home-parking': 'free', 'work-parking': 'free',
+      'pt-ticket': 'monthly',
+      'cs-service': 'blended', 'cs-trips-per-week': 3, 'cs-duration': '30', 'cs-avg-km': 7,
+      'cs-full-days-per-month': 6, 'cs-full-day-km': 180,
+      'mybee-class': 'suv', 'mybee-fuel': 'petrol',
+      'taxi-trips-per-month': 3, 'taxi-avg-fare': 8,
+    },
+    // 🔄 Reconsidering: premium car owner, uses car for everything — city trips and out-of-city
+    // Car-free substitute must replicate full flexibility: heavy carsharing (city) + full days (trips) + taxi (nights)
+    'reconsidering': {
+      'km-per-month': 1500, 'car-status': 'new', 'purchase-price': 40000,
+      'fuel-type': 'petrol', 'consumption': 9.0,
+      'has-loan': true, 'loan-amount': 35000, 'loan-term': 5, 'loan-rate': 6.5,
+      'insurance-type': 'kasko', 'seasonal-tyres': true, 'tyre-quality': 'premium', 'tyre-lifespan': 4,
+      'service-annual': 600, 'holding-years': 5,
+      'home-parking': 'rented', 'home-rented-cost': 75,
+      'work-parking': 'street', 'work-zone': 'yellow',
+      'pt-ticket': 'monthly',
+      'cs-service': 'blended', 'cs-trips-per-week': 7, 'cs-duration': '30', 'cs-avg-km': 10,
+      'cs-full-days-per-month': 4, 'cs-full-day-km': 150,
+      'mybee-class': 'midrange', 'mybee-fuel': 'petrol',
+      'taxi-trips-per-month': 4, 'taxi-avg-fare': 10,
+    }
+  };
+
+  function applyPreset(name) {
+    const p = PRESETS[name];
+    if (!p || !DATA) return;
+
+    // Mark active preset button
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById('preset-' + name);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    // Helpers
+    function setSlider(id, displayId, val) {
+      const el = document.getElementById(id);
+      if (el) { el.value = val; syncSlider(id, displayId); }
+    }
+    function setNum(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+    function setCheck(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.checked = val;
+    }
+    function setToggleState(toggleName, val) {
+      state[toggleName] = val;
+      const group = document.getElementById(toggleName + '-toggle');
+      if (group) group.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+    }
+    function setSelect(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+    function resetSource(id, text) {
+      const el = document.getElementById(id);
+      if (el) { el.classList.remove('custom'); el.textContent = text; }
+    }
+
+    // Section A
+    setSlider('km-per-month', 'km-per-month-val', p['km-per-month']);
+
+    // Section B — car
+    setToggleState('car-status', p['car-status']);
+    setNum('purchase-price', p['purchase-price']);
+    if (p['car-year']) setNum('car-year', p['car-year']);
+    setToggleState('fuel-type', p['fuel-type']);
+    setSlider('consumption', 'consumption-val', p['consumption']);
+    setCheck('has-loan', p['has-loan']);
+    setNum('loan-amount', p['loan-amount']);
+    // Only show "Matches purchase price" when they actually match
+    const loanMatchesPrice = p['loan-amount'] === p['purchase-price'];
+    resetSource('loan-amount-source', loanMatchesPrice ? 'Matches purchase price' : '');
+    setSlider('loan-term', 'loan-term-val', p['loan-term']);
+    setSlider('loan-rate', 'loan-rate-val', p['loan-rate']);
+    setToggleState('insurance-type', p['insurance-type']);
+    const insEst = calcInsuranceEstimate(p['purchase-price'], p['insurance-type'], DATA);
+    setNum('insurance-annual', insEst);
+    resetSource('insurance-annual-source', 'Market estimate · 2026');
+    setCheck('seasonal-tyres', p['seasonal-tyres']);
+    setToggleState('tyre-quality', p['tyre-quality']);
+    setSlider('tyre-lifespan', 'tyre-lifespan-val', p['tyre-lifespan']);
+    setNum('service-annual', p['service-annual']);
+    resetSource('service-annual-source', 'Estimate based on car age · 2026');
+    setSlider('holding-years', 'holding-years-val', p['holding-years']);
+    // Clear residual value override
+    const residualEl = document.getElementById('residual-value');
+    if (residualEl) residualEl.value = '';
+
+    // Section C — parking
+    setToggleState('home-parking', p['home-parking']);
+    if (p['home-rented-cost'] != null) setNum('home-rented-cost', p['home-rented-cost']);
+    setToggleState('work-parking', p['work-parking']);
+    if (p['work-paid-cost'] != null) setNum('work-paid-cost', p['work-paid-cost']);
+    if (p['work-days'] != null) setSlider('work-days', 'work-days-val', p['work-days']);
+    if (p['work-zone']) setSelect('work-zone', p['work-zone']);
+
+    // Section D — alternatives
+    setToggleState('pt-ticket', p['pt-ticket']);
+    setToggleState('cs-service', p['cs-service']);
+    setSlider('cs-trips-per-week', 'cs-trips-val', p['cs-trips-per-week']);
+    setToggleState('cs-duration', p['cs-duration']);
+    setNum('cs-avg-km', p['cs-avg-km']);
+    setSlider('cs-full-days-per-month', 'cs-fulldays-val', p['cs-full-days-per-month']);
+    setNum('cs-full-day-km', p['cs-full-day-km']);
+    setToggleState('mybee-class', p['mybee-class']);
+    setToggleState('mybee-fuel', p['mybee-fuel']);
+    setSlider('taxi-trips-per-month', 'taxi-trips-val', p['taxi-trips-per-month']);
+    setNum('taxi-avg-fare', p['taxi-avg-fare']);
+
+    // Trigger conditional UI
+    onCarStatusChange();
+    onFuelTypeChange();
+    onLoanToggle();
+    onHomeParkingChange();
+    onWorkParkingChange();
+    onPTTypeChange();
+    updateLoanHint();
+    updateInsuranceHint();
+
+    // Recalculate
+    update();
+
+    // Show preset summary
+    const carLabel = p['car-status'] === 'new' ? 'new' : (p['car-year'] ? p['car-year'] + ' used' : 'used');
+    const loanLabel = p['has-loan']
+      ? `loan €${p['loan-amount'].toLocaleString('lt-LT')} / ${p['loan-term']} yr`
+      : 'no loan';
+    const homeParkLabel = { free: 'free home', rented: 'rented home', street: 'street home' }[p['home-parking']] || '';
+    const workParkLabel = { free: '', paid: '+ paid work', street: '+ street work' }[p['work-parking']] || '';
+    const parkLabel = [homeParkLabel, workParkLabel].filter(Boolean).join(' ');
+    const summaryEl = document.getElementById('preset-summary');
+    if (summaryEl) {
+      summaryEl.style.display = 'block';
+      summaryEl.innerHTML =
+        `<span class="ps-label">Car</span> €${p['purchase-price'].toLocaleString('lt-LT')} ${carLabel} · ` +
+        `<span class="ps-label">Distance</span> ${p['km-per-month'].toLocaleString('lt-LT')} km/mo · ` +
+        `<span class="ps-label">Finance</span> ${loanLabel} · ` +
+        `<span class="ps-label">Parking</span> ${parkLabel}<br>` +
+        `<span class="ps-label">Carsharing</span> ${p['cs-trips-per-week']} trips/wk` +
+        (p['cs-full-days-per-month'] > 0 ? ` + ${p['cs-full-days-per-month']} full days/mo at ${p['cs-full-day-km']} km` : '') +
+        ` · <span class="ps-label">Taxi</span> ${p['taxi-trips-per-month']} trips/mo · ` +
+        `<span class="ps-label">MyBee</span> ${p['mybee-class']}`;
+    }
+
+    // Scroll preset card to top — summary stays visible, Section A is right below
+    const presetCard = document.querySelector('.preset-card');
+    if (presetCard) presetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ============================================================
+  // INITIALIZATION
+  // ============================================================
+
+  async function init() {
+    try {
+      const resp = await fetch('./data.json');
+      DATA = await resp.json();
+    } catch (e) {
+      console.warn('Could not load data.json, using fallback values', e);
+      DATA = {
+        fuel: { euro95_eur_per_litre: 1.79, diesel_eur_per_litre: 1.877, electricity_eur_per_kwh: 0.20 },
+        parking: { green_zone_monthly: 55, yellow_zone_monthly: 110, blue_zone_monthly: 525 },
+        tyres: { budget_set_eur: 280, mid_set_eur: 480, premium_set_eur: 720, changeover_eur: 40, default_lifespan_years: 4 },
+        insurance: { tpl_annual_eur: 280, kasko_rate_pct: 3.5 },
+        public_transport: { monthly_pass: 38, annual_pass: 342, single_30min: 1.00, single_60min: 1.25 },
+        carsharing: { blended_per_min: 0.17, blended_per_km: 0.11, spark_per_min: 0.17, spark_per_km: 0.10,
+          bolt_drive_per_min: 0.18, bolt_drive_per_km: 0.12, citybee_per_min: 0.15, citybee_per_km: 0.11,
+          spark_deductible_eur: 450, bolt_drive_deductible_eur: 750 },
+        mybee: { economy_monthly: 389, midrange_monthly: 490, premium_monthly: 690, suv_monthly: 780,
+          economy_petrol_l100km: 6.5, midrange_petrol_l100km: 7.5, premium_petrol_l100km: 9.0, suv_petrol_l100km: 9.5,
+          economy_diesel_l100km: 5.5, midrange_diesel_l100km: 6.5, premium_diesel_l100km: 7.5, suv_diesel_l100km: 8.0,
+          economy_kwh100km: 16, midrange_kwh100km: 18, premium_kwh100km: 22, suv_kwh100km: 24 },
+        co2: { petrol_kg_per_litre: 2.31, diesel_kg_per_litre: 2.68, grid_kg_per_kwh: 0.20,
+          spark_electric_kg_per_km: 0.10, bolt_drive_mixed_kg_per_km: 0.18, citybee_mixed_kg_per_km: 0.18,
+          pt_bus_kg_per_km: 0.04 },
+        taxi: { bolt_avg_fare_eur: 8 }
+      };
+    }
+
+    // Set fuel price display in source tags
+    const fuelUpdated = DATA.fuel?.updated ?? '—';
+    document.querySelectorAll('[data-source-fuel]').forEach(el => {
+      el.textContent = `EC Oil Bulletin · ${fuelUpdated}`;
+    });
+
+    // Set initial UI state
+    onCarStatusChange();   // hide year field for "new"
+    onFuelTypeChange();    // show correct consumption field
+    onLoanToggle();        // show loan fields
+    onHomeParkingChange(); // hide conditional parking fields
+    onWorkParkingChange();
+    onPTTypeChange();      // hide single-ticket fields
+
+    // Set initial estimates from data
+    const price = num('purchase-price', 20000);
+    const insEst = calcInsuranceEstimate(price, state['insurance-type'], DATA);
+    document.getElementById('insurance-annual').value = insEst;
+    updateInsuranceHint();
+
+    // Run initial calculation
+    update();
+  }
+
+  init();
+</script>
+</body>
+</html>
